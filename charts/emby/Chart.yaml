@@ -1,0 +1,9 @@
+apiVersion: v2
+description: A Helm chart for Emby media server
+icon: https://avatars3.githubusercontent.com/u/3607473?s=200&v=4
+name: emby
+sources:
+- https://github.com/MediaBrowser/Emby
+- https://github.com/MediaBrowser/Emby.Build
+type: application
+version: 0.2.3
