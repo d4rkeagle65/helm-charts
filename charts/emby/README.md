@@ -1,14 +1,12 @@
 # emby
 
-![Version: 0.2.3](https://img.shields.io/badge/Version-0.2.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
-
 A Helm chart for Emby media server
 
 ## Installation
 
 ```bash
-helm repo add ccremer https://ccremer.github.io/charts
-helm install emby ccremer/emby
+helm repo add d4rkeagle65 https://d4rkeagle65.github.io/helm-charts
+helm install emby d4rkeagle65/emby
 ```
 
 ## Source Code
@@ -22,6 +20,7 @@ helm install emby ccremer/emby
 |-----|------|---------|-------------|
 | additionalVolumeMounts | list | `[]` | Add custom volume mounts to the deployment |
 | additionalVolumes | list | `[]` | Add custom volumes to the deployment (may need to match `additionalVolumeMounts`) |
+| env | list | `[]` | Add environment variable support (See <https://github.com/linuxserver/docker-emby>) |
 | affinity | object | `{}` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy |
@@ -59,3 +58,6 @@ helm install emby ccremer/emby
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and `create` is `true`, a name is generated using the fullname template |
 | tolerations | list | `[]` |  |
+
+## Credits
+Sourced from: https://ccremer.github.io/charts
