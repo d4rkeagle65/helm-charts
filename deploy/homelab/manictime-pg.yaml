@@ -1,0 +1,53 @@
+# CNPG Cluster for ManicTime Server.
+# Apply before `helm install`:
+#   kubectl create ns manictime
+#   kubectl apply -n manictime -f deploy/homelab/manictime-pg.yaml
+#   kubectl -n manictime wait --for=condition=Ready cluster/manictime-pg --timeout=5m
+#
+# CNPG then generates in-namespace:
+#   Secret manictime-pg-app   (type kubernetes.io/basic-auth)
+#     keys: username, password, user, host, port, dbname, uri, jdbc-uri, pgpass
+#   Service manictime-pg-rw   (primary, read/write)  <-- what the chart points at
+#   Service manictime-pg-ro   (replicas, read-only)
+#   Service manictime-pg-r    (any instance)
+#
+# Notes:
+#   - postInitSQL runs against the `postgres` database as superuser during
+#     bootstrap. That's the context where we can `CREATE DATABASE` for the
+#     second (Reports) database. postInitApplicationSQL only runs against
+#     the app database as its owner and cannot create another database.
+#   - `manictime` role is created by initdb as the application user and
+#     given ownership of ManicTimeCore. We then create ManicTimeReports
+#     with the same owner via postInitSQL.
+#   - Postgres 15 chosen because the ManicTime Server Docker guide targets
+#     Postgres 15. Newer minors on the 15 line are drop-in.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: manictime-pg
+  namespace: manictime
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 10Gi
+    storageClass: nfs-retain-rwo
+  bootstrap:
+    initdb:
+      database: ManicTimeCore
+      owner: manictime
+      postInitSQL:
+        - CREATE DATABASE "ManicTimeReports" OWNER "manictime";
+  # Uncomment once you wire up a backup target.
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://homelab-backups/manictime-pg
+  #     s3Credentials:
+  #       accessKeyId:
+  #         name: cnpg-s3
+  #         key: access
+  #       secretAccessKey:
+  #         name: cnpg-s3
+  #         key: secret
+  #   retentionPolicy: "30d"

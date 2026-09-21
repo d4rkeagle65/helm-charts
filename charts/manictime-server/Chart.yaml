@@ -1,0 +1,10 @@
+apiVersion: v2
+description: A Helm chart for ManicTime Server (self-hosted time-tracking server)
+icon: https://www.manictime.com/favicon.ico
+name: manictime-server
+sources:
+- https://www.manictime.com/teams/download
+- https://hub.docker.com/r/manictime/manictimeserver
+- https://docs.manictime.com/server
+type: application
+version: 0.1.0

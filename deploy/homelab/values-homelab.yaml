@@ -1,0 +1,85 @@
+# values-homelab.yaml
+# ManicTime Server values tuned for david's hardinsolutions.net k8s cluster.
+#
+# Prereqs (create BEFORE `helm install`):
+#   1. Namespace `manictime`
+#   2. A CNPG Cluster named `manictime-pg` in that namespace (see
+#      deploy/homelab/manictime-pg.yaml alongside this file). CNPG will
+#      generate the Secret `manictime-pg-app` with a `password` key that
+#      this chart reads via helm `lookup` at install/upgrade time.
+#
+# Install:
+#   kubectl apply -n manictime -f deploy/homelab/manictime-pg.yaml
+#   # wait for cluster to be healthy: kubectl -n manictime get cluster manictime-pg
+#   helm install manictime-server charts/manictime-server \
+#     -n manictime -f deploy/homelab/values-homelab.yaml
+#
+# First-run (after pod is Running):
+#   kubectl -n manictime exec -it deploy/manictime-server -- dotnet Setup.dll -publicurl
+
+image:
+  tag: 2026.2.2
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: nfs-retain-rwo
+  mountPath: /app/Data
+
+service:
+  type: ClusterIP
+  httpPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: cloudflare-letsencrypt
+  hosts:
+    - host: manictime.${BASE_DOMAIN}
+      paths:
+        - /
+  tls:
+    - secretName: manictime-tls
+      hosts:
+        - manictime.${BASE_DOMAIN}
+
+env:
+  TZ: America/Detroit
+  # Trust X-Forwarded-Proto from ingress-nginx so ASP.NET's
+  # UseHttpsRedirection does not 308 the client (which strips the
+  # Authorization header on some paths, causing 401s during client
+  # config sync).
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+
+settings:
+  seed: true
+  database:
+    # CNPG generates <cluster-name>-rw as the read/write service.
+    # Bare short name relies on the pod's DNS search domain; safest here
+    # because this cluster's kubelet --cluster-domain + CoreDNS zone
+    # combine to produce <svc>.<ns>.svc.svc.k8s.net.hsn (double svc),
+    # which is easy to get wrong when spelling the FQDN by hand.
+    host: manictime-pg-rw
+    port: 5432
+    user: manictime
+    sslMode: Prefer
+    coreDatabase: ManicTimeCore
+    reportsDatabase: ManicTimeReports
+    passwordSecret:
+      name: manictime-pg-app
+      key: password
+  extra:
+    automaticVersionCheck:
+      enabled: false
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 50m
+    memory: 256Mi
+
+rbac:
+  k8sLocking:
+    enabled: true

@@ -1,0 +1,36 @@
+# One-off pod to run ManicTime Setup.dll against the manictime-server-data PVC.
+# Usage:
+#   kubectl -n manictime scale deploy/manictime-server --replicas=0
+#   kubectl -n manictime wait --for=delete pod -l app.kubernetes.io/name=manictime-server --timeout=60s
+#   kubectl -n manictime apply -f deploy/homelab/mt-setup.yaml
+#   kubectl -n manictime wait --for=condition=Ready pod/mt-setup --timeout=60s
+#   kubectl -n manictime attach -it mt-setup           # follow the wizard prompts
+#   # OR, if the wizard is web-based, in a second window:
+#   #   kubectl -n manictime port-forward pod/mt-setup 8080:8080
+#   #   then browse http://127.0.0.1:8080
+#   kubectl -n manictime delete pod mt-setup
+#   kubectl -n manictime scale deploy/manictime-server --replicas=1
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mt-setup
+  namespace: manictime
+  labels:
+    app.kubernetes.io/name: manictime-setup
+spec:
+  restartPolicy: Never
+  containers:
+    - name: mt-setup
+      image: docker.io/manictime/manictimeserver:2026.2.2
+      command: ["dotnet", "Setup.dll", "-publicurl"]
+      stdin: true
+      tty: true
+      ports:
+        - containerPort: 8080
+      volumeMounts:
+        - name: data
+          mountPath: /app/Data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: manictime-server-data

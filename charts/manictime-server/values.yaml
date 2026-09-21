@@ -1,0 +1,175 @@
+# Default values for manictime-server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  # -- Container image registry
+  registry: docker.io
+  # -- Location of the container image
+  repository: manictime/manictimeserver
+  # -- Container image tag (pin to a specific release; see https://hub.docker.com/r/manictime/manictimeserver/tags)
+  tag: 2026.2.2
+  # -- Container image pull policy
+  pullPolicy: IfNotPresent
+
+# -- List of image pull secrets if you use a privately hosted image
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # If not set and `create` is `true`, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service http port number (ManicTime Server listens on 8080 by default)
+  httpPort: 8080
+  # -- Node port number if `service.type` is `NodePort`
+  httpNodePort: 0
+
+persistence:
+  # -- Whether to enable the PVC and mount for /app/Data
+  # ManicTime Server writes ManicTimeServerSettings.json and its runtime state here.
+  # Leave this enabled in any real deployment.
+  enabled: true
+  # -- Requested storage size
+  size: 5Gi
+  # -- Mount path inside the container (do not change unless you know what you're doing)
+  mountPath: /app/Data
+  # -- PV selector
+  selector: {}
+  # -- Storage Class name of the PV
+  storageClass: ""
+  # -- Additional annotations to add to the PVC
+  annotations: {}
+
+# -- Add custom volume mounts to the deployment
+additionalVolumeMounts: []
+# -- Add custom volumes to the deployment (may need to match `additionalVolumeMounts`)
+additionalVolumes: []
+
+livenessProbe:
+  # -- Whether to enable the liveness probe
+  enabled: true
+readinessProbe:
+  # -- Whether to enable the readiness probe
+  enabled: true
+
+ingress:
+  # -- Control whether ingress is created
+  enabled: false
+  # -- IngressClass name (matches the cluster's IngressClass, e.g. nginx)
+  className: ""
+  # -- Additional annotations for the Ingress object
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: cloudflare-letsencrypt
+
+  # -- See Kubernetes Docs for a guide to setup Ingress hosts
+  hosts: []
+  # - host: manictime.${BASE_DOMAIN}
+  #   paths:
+  #     - /
+  # -- See Kubernetes Docs for a guide to setup TLS on Ingress
+  tls: []
+  #  - secretName: manictime-tls
+  #    hosts:
+  #      - manictime.${BASE_DOMAIN}
+
+# -- Extra environment variables for the ManicTime Server container
+env: {}
+# Example:
+# env:
+#   TZ: "America/Detroit"
+
+# -- ManicTimeServerSettings.json seeding.
+#
+# ManicTime Server reads its Postgres connection details from
+# /app/Data/ManicTimeServerSettings.json. The container itself does NOT
+# accept database credentials via environment variables.
+#
+# When settings.seed is true, this chart renders a Secret containing that
+# JSON file and an init container copies it into the PVC on first launch
+# (only if the file does not already exist, so Setup.dll / manual edits
+# on the PVC are never overwritten).
+#
+# Set settings.seed to false if you want to place the file yourself with
+# `kubectl cp` or an existing Secret.
+settings:
+  seed: true
+  # -- Existing Secret with a `ManicTimeServerSettings.json` key.
+  # If set, that Secret is used and the values below are ignored.
+  existingSecret: ""
+
+  # Connection details used to render ManicTimeServerSettings.json
+  # (only when settings.seed is true and existingSecret is empty).
+  database:
+    # -- Postgres host (e.g. your CNPG cluster's read-write service)
+    host: ""
+    # -- Postgres port
+    port: 5432
+    # -- Postgres user with ownership on both databases
+    user: manictime
+    # -- Password for the Postgres user. Prefer databasePasswordSecret over this.
+    password: ""
+    # -- Existing Secret + key holding the Postgres password.
+    # Takes precedence over `database.password` when both are set.
+    passwordSecret:
+      name: ""
+      key: password
+    # -- SSL Mode value passed to Npgsql (Disable, Allow, Prefer, Require, VerifyCA, VerifyFull)
+    sslMode: Prefer
+    # -- Name of the core database
+    coreDatabase: ManicTimeCore
+    # -- Name of the reports database
+    reportsDatabase: ManicTimeReports
+
+  # -- Extra JSON merged into ManicTimeServerSettings.json (deep-merge at the top level).
+  # Example:
+  # extra:
+  #   automaticVersionCheck:
+  #     enabled: false
+  extra: {}
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 50m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# -- RBAC for ManicTime Server's Kubernetes-based database locking.
+# On startup, ManicTime Server 2026+ lists pods (cluster-scoped) to check
+# whether the previous DB lock owner is still alive. Without this, the
+# pod will crashloop with a 403 error. Enable in cluster deploys.
+rbac:
+  k8sLocking:
+    enabled: false

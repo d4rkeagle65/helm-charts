@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "manictime-server.fullname" . }}
+  labels:
+    {{- include "manictime-server.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.service }}
+  type: {{ .type }}
+  ports:
+    - port: {{ .httpPort }}
+      targetPort: http
+      name: http
+      {{- with .httpNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+  {{- end }}
+  selector:
+    {{- include "manictime-server.selectorLabels" . | nindent 4 }}

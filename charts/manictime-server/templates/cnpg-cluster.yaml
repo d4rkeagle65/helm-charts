@@ -1,0 +1,36 @@
+{{/*
+Optional CloudNativePG Cluster for ManicTime Server.
+
+This template is intentionally left commented out. The chart is aimed at
+homelabs where CNPG is already installed and Postgres is provisioned
+outside the chart (see README, "Using your existing CNPG cluster").
+
+If you want the chart to own the DB too, uncomment and adapt. Requires
+the CNPG operator (postgresql.cnpg.io/v1) in the cluster.
+
+Note: CREATE DATABASE for the second (Reports) DB must go in
+`postInitSQL` (runs against `postgres` as superuser). It cannot go in
+`postInitApplicationSQL` (which runs against the app DB as its owner and
+cannot create databases).
+*/}}
+{{/*
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "manictime-server.fullname" . }}-pg
+  labels:
+    {{- include "manictime-server.labels" . | nindent 4 }}
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 10Gi
+    storageClass: nfs-retain-rwo
+  bootstrap:
+    initdb:
+      database: {{ .Values.settings.database.coreDatabase }}
+      owner: {{ .Values.settings.database.user }}
+      postInitSQL:
+        - CREATE DATABASE "{{ .Values.settings.database.reportsDatabase }}" OWNER "{{ .Values.settings.database.user }}";
+*/}}

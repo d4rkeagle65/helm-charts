@@ -1,0 +1,34 @@
+{{- if .Values.rbac.k8sLocking.enabled -}}
+{{- /*
+ManicTime Server 2026+ uses the Kubernetes API to coordinate its
+per-database lock: on startup it checks whether the previous lock
+owner's Pod is still alive by calling ListPodForAllNamespaces. That
+call is cluster-scoped, so a namespace-scoped Role is not enough.
+This ClusterRole grants only the read verbs on Pods and nothing else.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "manictime-server.fullname" . }}-lock
+  labels:
+    {{- include "manictime-server.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "manictime-server.fullname" . }}-lock
+  labels:
+    {{- include "manictime-server.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "manictime-server.fullname" . }}-lock
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "manictime-server.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
