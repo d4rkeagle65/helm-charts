@@ -160,6 +160,9 @@ resources:
     cpu: 50m
     memory: 256Mi
 
+# The pod's PriorityClass; empty leaves the cluster's default.
+priorityClassName: ""
+
 nodeSelector: {}
 
 tolerations: []
